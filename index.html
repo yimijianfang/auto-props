@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vue子组件props自动生成器</title>
+  <link href="https://cdn.bootcdn.net/ajax/libs/element-ui/2.14.0/theme-chalk/index.css" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <h2>组件props自动生成器</h2>
+    <div>
+      <el-radio-group v-model="type" style="margin-bottom: 30px;" @change="handleTypeChange">
+        <el-radio-button label="view">view</el-radio-button>
+        <el-radio-button label="code">code</el-radio-button>
+      </el-radio-group>
+    </div>
+    <el-table
+      v-if="type == 'view'"
+      :data="tableData"
+      style="width: 100%">
+      <el-table-column
+        label="参数"
+        width="180">
+        <template slot-scope="scope">
+          <el-input
+            v-if="scope.row.edit"
+            placeholder="请输入参数"
+            v-model.trim="scope.row.key"
+            @blur="handleKeyBlur(scope.row, $event)"
+            clearable>
+          </el-input>
+          <span
+            v-else
+            style="margin-left: 10px"
+          >{{ scope.row.key }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="类型"
+        width="180">
+        <template slot-scope="scope">
+          <el-select v-if="scope.row.edit" v-model="scope.row.type" filterable placeholder="请选择">
+            <el-option
+              v-for="type of types"
+              :key="type"
+              :label="type"
+              :value="type">
+            </el-option>
+          </el-select>
+          <el-tag v-else size="medium" disable-transitions>{{ scope.row.type }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="默认值"
+        width="180">
+        <template slot-scope="scope">
+          <el-input
+            v-if="scope.row.edit"
+            placeholder="请输入默认值"
+            v-model="scope.row.defaultValue"
+            clearable>
+          </el-input>
+          <span
+            v-else
+            style="margin-left: 10px"
+          >{{ scope.row.defaultValue }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作">
+        <template slot="header" slot-scope="scope">
+          <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">新增</el-button>
+        </template>
+        <template slot-scope="scope">
+          <el-button
+            size="mini"
+            v-if="!scope.row.edit"
+            @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+          <el-button
+            size="mini"
+            type="danger"
+            @click="handleDelete(scope.$index, scope.row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <el-input
+      v-else
+      type="textarea"
+      :rows="30"
+      v-model="textarea">
+    </el-input>
+  </div>
+  <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.12/vue.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.14.0/index.js"></script>
+  <script>
+  var vm = new Vue({
+      el: "#app",
+      data: {
+        type: 'view',
+        types:["String", 'Number', 'Boolean', 'Array', 'Object'],
+        textarea: '',
+        tableData: [{
+          key: 'size',
+          type: 'String'
+        },{
+          key: 'placeholder',
+          type: 'String',
+          defaultValue: '请输入'
+        }]
+        // ,{
+        //   key: 'disabled',
+        //   type: 'Boolean',
+        //   defaultValue: 'true'
+        // }
+      },
+      methods: {
+        handleEdit(index, row) {
+          console.log(index, row);
+          this.$set(row, 'edit', true)
+        },
+        handleDelete(index, row) {
+          console.log(index, row);
+          this.tableData.splice(index, 1)
+        },
+        handleAdd(){
+          this.tableData.push({
+            key: '',
+            type: 'String',
+            defaultValue: '',
+            edit: true
+          })
+        },
+        handleKeyBlur(row, event){
+          if(row.key){
+            //row.edit = false
+          }else{
+            //row.edit = true
+          }
+        },
+        handleTypeChange(){
+          if(this.type == 'code'){
+            let data = this.formatData()
+            let str = JSON.stringify(data,null,2); 
+            console.log(str)
+            str = str.replace('"type": "String"', '"type": String')
+            this.textarea = str
+          }
+        },
+        formatData(){
+          return this.tableData.filter(_=>_.key).map((item)=>{
+            let {key, type, defaultValue} = item
+            switch(type){
+              case "String":
+                if(defaultValue === "" || defaultValue === undefined){
+                  return {
+                    [key]: {
+                      type: type
+                    }
+                  }
+                }else{
+                  return {
+                    [key]: {
+                      type: type,
+                      default: defaultValue
+                    }
+                  }
+                }
+              break;
+            }
+          })
+        }
+      }
+    })
+  </script>
+</body>
+</html>
