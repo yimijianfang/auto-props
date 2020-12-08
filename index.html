@@ -5,18 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>vue子组件props自动生成器</title>
   <link href="https://cdn.bootcdn.net/ajax/libs/element-ui/2.14.0/theme-chalk/index.css" rel="stylesheet">
+  <style>
+    .tag-container .el-tag{
+      margin: 0 5px;
+    }
+  </style>
 </head>
 <body>
   <div id="app">
     <h2>组件props自动生成器</h2>
     <div>
       <el-radio-group v-model="type" style="margin-bottom: 30px;" @change="handleTypeChange">
-        <el-radio-button label="view">view</el-radio-button>
-        <el-radio-button label="code">code</el-radio-button>
+        <el-radio-button label="view">视图</el-radio-button>
+        <el-radio-button label="code">代码</el-radio-button>
       </el-radio-group>
     </div>
+    <el-input
+      v-show="showCode"
+      type="textarea"
+      :rows="30"
+      v-model="textarea">
+    </el-input>
     <el-table
-      v-if="type == 'view'"
+      v-show="!showCode"
       :data="tableData"
       style="width: 100%">
       <el-table-column
@@ -37,10 +48,9 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="类型"
-        width="180">
+        label="类型">
         <template slot-scope="scope">
-          <el-select v-if="scope.row.edit" v-model="scope.row.type" filterable placeholder="请选择">
+          <el-select v-if="scope.row.edit" multiple v-model="scope.row.type" filterable placeholder="请选择">
             <el-option
               v-for="type of types"
               :key="type"
@@ -48,12 +58,13 @@
               :value="type">
             </el-option>
           </el-select>
-          <el-tag v-else size="medium" disable-transitions>{{ scope.row.type }}</el-tag>
+          <div v-else class="tag-container">
+            <el-tag v-for="item in scope.row.type" :key="item" size="small" disable-transitions>{{ item }}</el-tag>
+          </div>          
         </template>
       </el-table-column>
       <el-table-column
-        label="默认值"
-        width="180">
+        label="默认值">
         <template slot-scope="scope">
           <el-input
             v-if="scope.row.edit"
@@ -74,21 +85,15 @@
         <template slot-scope="scope">
           <el-button
             size="mini"
-            v-if="!scope.row.edit"
-            @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
-          <el-button
-            size="mini"
             type="danger"
             @click="handleDelete(scope.$index, scope.row)">删除</el-button>
+          <el-button
+            size="mini"
+            v-if="!scope.row.edit"
+            @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
         </template>
       </el-table-column>
     </el-table>
-    <el-input
-      v-else
-      type="textarea"
-      :rows="30"
-      v-model="textarea">
-    </el-input>
   </div>
   <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.12/vue.js"></script>
   <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.14.0/index.js"></script>
@@ -97,14 +102,14 @@
       el: "#app",
       data: {
         type: 'view',
-        types:["String", 'Number', 'Boolean', 'Array', 'Object'],
+        types:["String", 'Number', 'Boolean', 'Array', 'Object', 'Date', 'Function', 'Symbol'],
         textarea: '',
         tableData: [{
           key: 'size',
-          type: 'String'
+          type: ['String']
         },{
           key: 'placeholder',
-          type: 'String',
+          type: ['String'],
           defaultValue: '请输入'
         }]
         // ,{
@@ -113,61 +118,70 @@
         //   defaultValue: 'true'
         // }
       },
+      computed:{
+        showCode: function(){
+          return this.type === 'code'
+        }
+      },
       methods: {
         handleEdit(index, row) {
-          console.log(index, row);
           this.$set(row, 'edit', true)
         },
         handleDelete(index, row) {
-          console.log(index, row);
           this.tableData.splice(index, 1)
         },
         handleAdd(){
           this.tableData.push({
             key: '',
-            type: 'String',
+            type: ['String'],
             defaultValue: '',
             edit: true
           })
         },
         handleKeyBlur(row, event){
           if(row.key){
-            //row.edit = false
+            row.edit = false
           }else{
             //row.edit = true
           }
         },
+        // 切换显示code
         handleTypeChange(){
-          if(this.type == 'code'){
+          if(this.showCode){
             let data = this.formatData()
             let str = JSON.stringify(data,null,2); 
             console.log(str)
-            str = str.replace('"type": "String"', '"type": String')
+            str = str.replaceAll('"type": "String"', '"type": String')
+                  .replaceAll('"type": "Number"', '"type": Number')
+                  .replaceAll('"type": "Boolean"', '"type": Boolean')
+                  .replaceAll('"type": "Array"', '"type": Array')
+                  .replaceAll('"type": "Object"', '"type": Object')
+                  .replaceAll('"type": "Date"', '"type": Date')
+                  .replaceAll('"type": "Function"', '"type": Function')
+                  .replaceAll('"type": "Symbol"', '"type": Symbol')
             this.textarea = str
           }
         },
         formatData(){
-          return this.tableData.filter(_=>_.key).map((item)=>{
+          var obj = {}
+          this.tableData.filter(_=>_.key).forEach((item)=>{
             let {key, type, defaultValue} = item
             switch(type){
               case "String":
                 if(defaultValue === "" || defaultValue === undefined){
-                  return {
-                    [key]: {
-                      type: type
-                    }
+                  obj[key] = {
+                    type: type
                   }
                 }else{
-                  return {
-                    [key]: {
-                      type: type,
-                      default: defaultValue
-                    }
+                  obj[key] = {
+                    type: type,
+                    default: defaultValue
                   }
                 }
               break;
             }
           })
+          return obj
         }
       }
     })
